@@ -1,9 +1,9 @@
 FROM alpine:3.5
 
-ADD https://github.com/emailbob/docker-registry-cleaner/releases/download/latest-linux/docker-registry-cleaner /docker-registry-cleaner
+ADD https://github.com/emailbob/coreos-update-logger/releases/download/latest-linux/coreos-update-logger /coreos-update-logger
 
 RUN apk add --update ca-certificates && \
     rm -rf /var/cache/apk/* && \
-    chmod +x /docker-registry-cleaner
+    chmod +x /coreos-update-logger
 
-CMD ["/docker-registry-cleaner"]
+CMD ["/coreos-update-logger"]
