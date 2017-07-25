@@ -35,14 +35,14 @@ docker build -t coreos-update-logger -f Dockerfile.build .
 ### Example  
 CLI  
 ```
-coreos-update-logger --url https://<elasticsearch_endpoint> --host <coreos_host_identifier> --lock_smith /run/systemd/system/locksmithd.service.d/20-cloudinit.conf --os_rel /etc/os-release --update_conf /etc/coreos/update.conf --uptime /proc/uptime
+coreos-update-logger --url https://<elasticsearch_endpoint>:9200 --host <coreos_host_identifier> --lock_smith /run/systemd/system/locksmithd.service.d/20-cloudinit.conf --os_rel /etc/os-release --update_conf /etc/coreos/update.conf --uptime /proc/uptime
 ```
 
 Docker
 ```
-docker run -ti --net=weave -v /run/systemd/system/locksmithd.service.d/20-cloudinit.conf:/20-cloudinit.conf:ro -v /etc/os-release:/os-release:ro -v /etc/coreos/update.conf:/update.conf:ro -v /proc/uptime:/uptime:ro -e HOST=${COREOS_PRIVATE_IPV4} -e URL=http://logsearch-york01.mgmt.crosschx.com:9200 -e FREQ=2 -e ENV=dev containers.mgmt.crosschx.com:5000/crosschx/coreos-update-logger
+docker run -ti --net=weave -v /run/systemd/system/locksmithd.service.d/20-cloudinit.conf:/20-cloudinit.conf:ro -v /etc/os-release:/os-release:ro -v /etc/coreos/update.conf:/update.conf:ro -v /proc/uptime:/uptime:ro -e HOST=${COREOS_PRIVATE_IPV4} -e URL=http://<elasticsearch_endpoint>:9200 -e FREQ=2 -e ENV=dev thefoo/coreos-update-logger:latest
 
-docker run -d --name coreos-update-logger --net=host -v /run/systemd/system/locksmithd.service.d/20-cloudinit.conf:/20-cloudinit.conf:ro -v /etc/os-release:/os-release:ro -v /etc/coreos/update.conf:/update.conf:ro -v /proc/uptime:/uptime:ro -e HOST=${COREOS_PRIVATE_IPV4} -e URL=http://logsearch01.mgmt.crosschx.com:9200 -e FREQ=600 -e ENV=dev containers.mgmt.crosschx.com:5000/crosschx/coreos-update-logger:latest
+docker run -d --name coreos-update-logger --net=host -v /run/systemd/system/locksmithd.service.d/20-cloudinit.conf:/20-cloudinit.conf:ro -v /etc/os-release:/os-release:ro -v /etc/coreos/update.conf:/update.conf:ro -v /proc/uptime:/uptime:ro -e HOST=${COREOS_PRIVATE_IPV4} -e URL=http://<elasticsearch_endpoint>:9200 -e FREQ=600 -e ENV=dev thefoo/coreos-update-logger:latest
 
 ```
 
