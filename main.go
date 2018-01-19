@@ -81,12 +81,18 @@ type CoreOSRelease struct {
 	Time            time.Time `json:"time"`
 }
 
-func writeToES(c *cli.Context, cfg *ini.File) {
+func writeToES(client *elastic.Client, c *cli.Context, cfg *ini.File) error {
 	// get locksmith settings
-	reboot := getLockSmithConf(c)
+	reboot, err := getLockSmithConf(c)
+	if err != nil {
+		log.Println(err)
+	}
 
 	// get uptime values
-	uptime := getUptime(c)
+	uptime, err := getUptime(c)
+	if err != nil {
+		log.Println(err)
+	}
 
 	// reload coreos host files
 	cfg.Reload()
@@ -113,6 +119,7 @@ func writeToES(c *cli.Context, cfg *ini.File) {
 		Time:            t,
 	}
 
+	//debug
 	//fmt.Printf("%s | %s | %s | %s | %s | %s | %s | %v\n", data.Name, data.ID, data.Version, data.VersionID, data.BuildID, data.Group, data.RebootWinStart, data.UptimeHours)
 
 	// create new elastic search index per day
@@ -121,15 +128,15 @@ func writeToES(c *cli.Context, cfg *ini.File) {
 	// Create a context
 	ctx := context.Background()
 
-	client, err := elastic.NewClient(elastic.SetURL(c.String("url")))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// client, err := elastic.NewClient(elastic.SetURL(c.String("url")))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// Use the IndexExists service to check if a specified index exists.
 	exists, err := client.IndexExists(indexName).Do(ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	if !exists {
 		// Create an index
@@ -150,7 +157,7 @@ func writeToES(c *cli.Context, cfg *ini.File) {
 		Refresh("true").
 		Do(ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	log.Println("Writing to ElasticSearch at", c.String("url"), "in index", color.BlueString(indexName))
@@ -158,12 +165,13 @@ func writeToES(c *cli.Context, cfg *ini.File) {
 	// Flush to make sure the documents got written.
 	_, err = client.Flush().Index(indexName).Do(ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
+	return err
 }
 
 // get uptime from host /proc/uptime
-func getUptime(c *cli.Context) Uptime {
+func getUptime(c *cli.Context) (Uptime, error) {
 	var uptime Uptime
 	uptimeString, err := ioutil.ReadFile(c.String("uptime")) // /proc/uptime
 	if err != nil {
@@ -182,10 +190,10 @@ func getUptime(c *cli.Context) Uptime {
 	uptime.Hours = sec / 3600
 	uptime.Days = sec / 86400
 
-	return uptime
+	return uptime, err
 }
 
-func getLockSmithConf(c *cli.Context) LockSmithConf {
+func getLockSmithConf(c *cli.Context) (LockSmithConf, error) {
 	var rebootWin LockSmithConf
 
 	fi, err := os.Stat(c.String("lock_smith"))
@@ -226,14 +234,14 @@ func getLockSmithConf(c *cli.Context) LockSmithConf {
 
 	}
 
-	return rebootWin
+	return rebootWin, err
 }
 
 func main() {
 
 	app := cli.NewApp()
 	app.Name = "CoreOS Update Logger"
-	app.Version = "0.1.0"
+	app.Version = "0.2.0"
 	app.Compiled = time.Now()
 	app.Usage = "Logs to ElasticSearch"
 
@@ -317,9 +325,16 @@ func main() {
 		// if only doing reads speeds up operations
 		cfg.BlockMode = false
 
+		client, err := elastic.NewClient(elastic.SetURL(c.String("url")))
+		if err != nil {
+			log.Println(err)
+		}
+
 		// write to elastic search on a set interval
 		for _ = range time.NewTicker(time.Duration(c.Int("freq")) * time.Second).C {
-			writeToES(c, cfg)
+			if writeToES(client, c, cfg) != nil {
+				log.Println(err)
+			}
 		}
 
 		return nil
